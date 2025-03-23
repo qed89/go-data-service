@@ -17,15 +17,19 @@ func main() {
 	}
 	defer db.Close()
 
+	userRepo := repositories.NewUserRepository(db)
 	elementRepo := repositories.NewElementRepository(db)
 	tableRepo := repositories.NewTableRepository(db)
 	formRepo := repositories.NewFormRepository(db)
 
+	userHandler := handlers.NewUserHandler(userRepo)
 	elementHandler := handlers.NewElementHandler(elementRepo)
 	tableHandler := handlers.NewTableHandler(tableRepo)
 	formHandler := handlers.NewFormHandler(formRepo)
 
 	r := mux.NewRouter()
+	r.HandleFunc("/register", userHandler.Register).Methods("POST")
+	r.HandleFunc("/login", userHandler.Login).Methods("POST")
 	r.HandleFunc("/elements", elementHandler.GetElements).Methods("GET")
 	r.HandleFunc("/elements/{id}", elementHandler.GetElement).Methods("GET")
 	r.HandleFunc("/tables", tableHandler.GetTables).Methods("GET")

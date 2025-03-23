@@ -1,0 +1,9 @@
+# .gitignore для Go
+bin/
+  pkg/
+  *.exe
+  *.out
+  *.log
+  vendor/
+  .idea/
+  .vscode/
