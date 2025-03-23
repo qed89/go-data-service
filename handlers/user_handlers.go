@@ -5,14 +5,20 @@ import (
 	"go-data-service/models"
 	"go-data-service/repositories"
 	"net/http"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type UserHandler struct {
-	repo *repositories.UserRepository
+	repo     *repositories.UserRepository
+	validate *validator.Validate
 }
 
 func NewUserHandler(repo *repositories.UserRepository) *UserHandler {
-	return &UserHandler{repo: repo}
+	return &UserHandler{
+		repo:     repo,
+		validate: validator.New(),
+	}
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -22,6 +28,13 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Валидация данных
+	if err := h.validate.Struct(user); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Сохранение пользователя
 	if err := h.repo.Save(&user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -43,7 +56,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if dbUser.Password != user.Password {
+	if !h.repo.CheckPassword(user.Password, dbUser.Password) {
 		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 		return
 	}

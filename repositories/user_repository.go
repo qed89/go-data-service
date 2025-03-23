@@ -3,6 +3,8 @@ package repositories
 import (
 	"database/sql"
 	"go-data-service/models"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserRepository struct {
@@ -11,6 +13,11 @@ type UserRepository struct {
 
 func NewUserRepository(db *sql.DB) *UserRepository {
 	return &UserRepository{db: db}
+}
+
+func (r *UserRepository) CheckPassword(plainPassword, hashedPassword string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(plainPassword))
+	return err == nil
 }
 
 func (r *UserRepository) FindByUsername(username string) (*models.User, error) {
@@ -23,7 +30,21 @@ func (r *UserRepository) FindByUsername(username string) (*models.User, error) {
 	return &user, nil
 }
 
+func HashPassword(password string) (string, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashedPassword), nil
+}
+
 func (r *UserRepository) Save(user *models.User) error {
+	hashedPassword, err := HashPassword(user.Password)
+	if err != nil {
+		return err
+	}
+	user.Password = hashedPassword
+
 	query := `INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id`
 	return r.db.QueryRow(query, user.Username, user.Password).Scan(&user.ID)
 }
