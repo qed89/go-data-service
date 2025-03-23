@@ -20,11 +20,17 @@ func NewUserHandler(repo *repositories.UserRepository) *UserHandler {
 		validate: validator.New(),
 	}
 }
-
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Проверка, существует ли пользователь с таким логином
+	existingUser, err := h.repo.FindByUsername(user.Username)
+	if err == nil && existingUser != nil {
+		http.Error(w, "Пользователь с таким именем уже существует", http.StatusBadRequest)
 		return
 	}
 
@@ -36,7 +42,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Сохранение пользователя
 	if err := h.repo.Save(&user); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Ошибка при сохранении пользователя", http.StatusInternalServerError)
 		return
 	}
 

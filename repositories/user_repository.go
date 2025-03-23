@@ -3,6 +3,7 @@ package repositories
 import (
 	"database/sql"
 	"go-data-service/models"
+	"go-data-service/utils"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -24,22 +25,17 @@ func (r *UserRepository) FindByUsername(username string) (*models.User, error) {
 	var user models.User
 	query := `SELECT id, username, password FROM users WHERE username = $1`
 	err := r.db.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.Password)
+	if err == sql.ErrNoRows {
+		return nil, nil // Пользователь не найден
+	}
 	if err != nil {
-		return nil, err
+		return nil, err // Другая ошибка
 	}
 	return &user, nil
 }
 
-func HashPassword(password string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	return string(hashedPassword), nil
-}
-
 func (r *UserRepository) Save(user *models.User) error {
-	hashedPassword, err := HashPassword(user.Password)
+	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
 		return err
 	}
